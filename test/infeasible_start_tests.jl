@@ -55,5 +55,3 @@ results, = solve(solver,X_interp,U)
 # Test final state from foh solve
 @test norm(results.X[:,end] - solver.obj.xf) < 1e-3
 ##################
-
-# plot(results.X')

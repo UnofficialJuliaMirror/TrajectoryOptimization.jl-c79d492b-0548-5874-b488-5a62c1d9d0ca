@@ -407,71 +407,49 @@ function _solve(solver::Solver, U0::Array{Float64,2}, X0::Array{Float64,2}=Array
             # println("Infeasible -> Feasible ")
             println("Infeasible solve complete")
         end
-        # results_feasible, stats_feasible = solve_feasible_traj(results,solver) # using current control solution, warm-start another solve with dynamics strictly enforced
-        # if solver.opts.cache
-        #     results_feasible = merge_results_cache(results_cache,results_feasible) # return infeasible results and final enforce dynamics results
-        # end
-        # for key in keys(stats_feasible)
-        #     stats[key * " (infeasible)"] = stats[key]
-        # end
-        # stats["iterations"] += stats_feasible["iterations"]-1
-        # stats["major iterations"] += stats_feasible["iterations"]
-        # stats["runtime"] += stats_feasible["runtime"]
-        # stats["setup_time"] += stats_feasible["setup_time"]
-        # append!(stats["cost"], stats_feasible["cost"])
-        # append!(stats["c_max"], stats_feasible["c_max"])
-        # return results_feasible, stats # TODO: add stats together
 
-        #TODO streamline this into inplace function
-        # K_lqr = lqr(results, solver)
-        # K_lqr = lqr(results.fx[1:n,1:n,:],results.fu[1:n,1:solver.model.m,:],solver.obj.Q,solver.obj.R,solver.obj.Qf)
+        # run single backward pass/forward pass to get dynamically feasible solution
+        results_feasible = get_feasible_trajectory(results,solver)
 
-        # println("size K_lqr: $(size(K_lqr))")
-        # println("size U: $(size(U))")
-        # println("size U: $(size(results.U[1:solver.model.m,:]))")
-        # println("typeof U: $(typeof(results.U[1:solver.model.m,:]))")
-        # println("typeof f: $(typeof(solver.fd))")
+        # resolve feasible solution if necessary (should be fast)
+        if solver.opts.resolve_feasible
+            if solver.opts.verbose
+                println("Resolving feasible")
+            end
+            # create unconstrained solver from infeasible solver if problem is unconstrained
+            if solver.opts.unconstrained
+                obj_uncon = UnconstrainedObjective(solver.obj.Q,solver.obj.R,solver.obj.Qf,solver.obj.tf,solver.obj.x0,solver.obj.xf)
+                solver = Solver(solver.model,obj_uncon,integration=solver.integration,dt=solver.dt,opts=solver.opts)
+            end
 
-        # if solver.control_integration == :foh
-        #     fd = rk4(solver.fc, solver.dt)
-        # else
-        #     fd = solver.fd
-        # end
-        # X_lqr, U_lqr = simulate_lqr_tracker(fd,results.X,results.U[1:solver.model.m,:],K_lqr)
-        # results.d .= 0.0
-        # results.d[1:solver.model.m,:] = results.U[1:solver.model.m,:]
-        # results.K .= 0.0
-        # results.K[1:solver.model.m,:,1:N-1] = K_lqr
-        # results.X .= X_lqr
-        # results.U .= 0.0
-        # results.U[1:solver.model.m,:] .= U_lqr
+            # resolve feasible problem with warm start
+            results_feasible, stats_feasible = solve(solver,results_feasible.U)
 
-        # A = results.fx[:,1:solver.model.n,:]
-        # B = results.fu[1:solver.model.n,1:solver.model.m,:]
-        # Q = 0.0*Diagonal(I,solver.model.n)
-        # R = 0.001*Diagonal(I,solver.model.m)
-        # Qf = 100.0*Diagonal(I,solver.model.n)
-        # K = lqr(A, B, Q, R, Qf)
-        # f22 = rk4(solver.fc, solver.dt)
-        # println(results.X)
-        # X_lqr, U_lqr = simulate_lqr_tracker(f22,results.X,results.U[1:solver.model.m,:],K)
-        # println(X_lqr)
-        # println(results.X)
+            # merge stats
+            for key in keys(stats_feasible)
+                stats[key * " (infeasible)"] = stats[key]
+            end
+            stats["iterations"] += stats_feasible["iterations"]-1
+            stats["major iterations"] += stats_feasible["iterations"]
+            stats["runtime"] += stats_feasible["runtime"]
+            stats["setup_time"] += stats_feasible["setup_time"]
+            append!(stats["cost"], stats_feasible["cost"])
+            append!(stats["c_max"], stats_feasible["c_max"])
+        end
 
-        #TODO decide if we want to update all constraints, Jacobians, cost with LQR tracker results
-        # if is_constrained
-        #     update_constraints!(results, solver, X_lqr, U_lqr)
-        # end
-        # calculate_derivatives!(results, solver, X_lqr, U_lqr)
-        # calc_jacobians(results, solver)
-
-        # TODO for now, return infeasible controls, states (not dynamically constrained)
+        # return (now) feasible results
         if solver.opts.cache
-            # add_iter!(results_cache, results, cost(solver, results, X_lqr, U_lqr))
+            if solver.opts.resolve_feasible
+                results_cache = merge_results_cache(results_cache,results_feasible)
+            else
+                add_iter!(results_cache, results_feasible, cost(solver, results_feasible, results_feasible.X, results_feasible.U))
+            end
             return results_cache, stats
         else
-            return results, stats
+            return results_feasible, stats
         end
+
+    # if feasible solve, return results
     else
         if solver.opts.verbose
             println("***Solve Complete***")
@@ -484,21 +462,38 @@ function _solve(solver::Solver, U0::Array{Float64,2}, X0::Array{Float64,2}=Array
     end
 end
 
-# """
-# $(SIGNATURES)
-# Infeasible start solution is run through standard constrained solve to enforce dynamic feasibility. All infeasible augmented controls are removed.
-# """
-# function solve_feasible_traj(results::ConstrainedResults,solver::Solver)
-#     solver.opts.infeasible = false
-#     if solver.opts.unconstrained
-#         # TODO method for generating a new solver with unconstrained objective
-#         obj_uncon = UnconstrainedObjective(solver.obj.Q,solver.obj.R,solver.obj.Qf,solver.obj.tf,solver.obj.x0,solver.obj.xf)
-#         solver_uncon = Solver(solver.model,obj_uncon,integration=solver.integration,dt=solver.dt,opts=solver.opts)
-#         return solve(solver_uncon,results.U[1:solver.model.m,:])
-#     else
-#         return solve(solver,results.U[1:solver.model.m,:],prevResults=results)
-#     end
-# end
+"""
+$(SIGNATURES)
+Infeasible start solution is run through time varying LQR to track state and control trajectories
+"""
+function get_feasible_trajectory(results::SolverIterResults,solver::Solver)::SolverIterResults
+    # turn off infeasible solve
+    solver.opts.infeasible = false
+
+    # remove infeasible components
+    results_feasible = new_unconstrained_results(results,solver)
+
+    # before backward pass (ie, time varying lqr)
+    if solver.control_integration == :foh
+        Δv = backwardpass_foh!(results_feasible,solver)
+    elseif solver.opts.square_root
+        Δv = backwardpass_sqrt!(results_feasible, solver)
+    else
+        Δv = backwardpass!(results_feasible, solver)
+    end
+    # rollout solution
+    forwardpass!(results_feasible,solver,Δv)
+    results_feasible.X .= results_feasible.X_
+    results_feasible.U .= results_feasible.U_
+
+    # return constrained results if input was constrained
+    if !solver.opts.unconstrained
+        results_feasible = new_constrained_results(results_feasible,solver)
+        update_constraints!(results_feasible,solver,results_feasible.X,results_feasible.U)
+    end
+
+    return results_feasible
+end
 
 """
 $(SIGNATURES)

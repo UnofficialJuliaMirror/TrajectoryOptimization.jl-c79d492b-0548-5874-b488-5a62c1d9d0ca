@@ -150,6 +150,7 @@ function copy(r::UnconstrainedResults)
     UnconstrainedResults(copy(r.X),copy(r.U),copy(r.K),copy(r.b),copy(r.d),copy(r.X_),copy(r.U_),copy(r.S),copy(r.s),copy(r.fx),copy(r.fu),copy(r.fv),copy(r.Ac),copy(r.Bc),copy(r.xdot),copy(r.ρ),copy(r.dρ))
 end
 
+
 """
 $(TYPEDEF)
 Values computed for a constrained optimization problem
@@ -376,6 +377,51 @@ function copy(r::ConstrainedResults)
 end
 
 """
+@(SIGNATURES)
+
+    For infeasible solve, return an unconstrained results from a prior unconstrained or constrained results
+        -removes infeasible controls and infeasible components in Jacobians
+"""
+function new_unconstrained_results(r::SolverIterResults,s::Solver)::UnconstrainedResults
+    n = s.model.n
+    m = s.model.m
+    N = s.N
+    results = UnconstrainedResults(n,m,N)
+    results.X .= r.X
+    results.U .= r.U[1:m,:]
+    results.fx .= r.fx[1:n,1:n,:]
+    results.fu .= r.fu[1:n,1:m,:]
+    results.fv .= r.fv[1:n,1:m,:]
+    results.Ac .= r.Ac[1:n,1:n,:]
+    results.Bc .= r.Bc[1:n,1:m,:]
+    results.xdot .= r.xdot
+    results
+end
+
+"""
+@(SIGNATURES)
+
+    For infeasible solve, return a constrained results from a prior unconstrained or constrained results
+"""
+function new_constrained_results(r::SolverIterResults,s::Solver)::ConstrainedResults
+    n = s.model.n
+    m = s.model.m
+    N = s.N
+    p = s.obj.p
+    p_N = s.obj.p_N
+    results = ConstrainedResults(n,m,p,N,p_N)
+    results.X .= r.X
+    results.U .= r.U[1:m,:]
+    results.fx .= r.fx[1:n,1:n,:]
+    results.fu .= r.fu[1:n,1:m,:]
+    results.fv .= r.fv[1:n,1:m,:]
+    results.Ac .= r.Ac[1:n,1:n,:]
+    results.Bc .= r.Bc[1:n,1:m,:]
+    results.xdot .= r.xdot
+    results
+end
+
+"""
 $(TYPEDEF)
 Values cached for each solve iteration
 """
@@ -508,6 +554,8 @@ function check_multipliers(results,solver)
 
     return nothing
 end
+
+
 
 struct DircolVars
     Z::Vector{Float64}
