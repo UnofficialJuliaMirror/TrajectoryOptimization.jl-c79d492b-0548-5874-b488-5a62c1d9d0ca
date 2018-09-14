@@ -49,7 +49,9 @@ export
     max_violation,
     update_objective,
     infeasible_control,
-    line_trajectory
+    line_trajectory,
+    lqr,
+    simulate_lqr_tracker
 
 export
     get_sizes,
@@ -66,6 +68,7 @@ include("solver.jl")
 include("results.jl")
 include("ilqr_algorithm.jl")
 include("ilqr_methods.jl")
+include("lqr.jl")
 include("solve.jl")
 include("utils.jl")
 include("dynamics.jl")

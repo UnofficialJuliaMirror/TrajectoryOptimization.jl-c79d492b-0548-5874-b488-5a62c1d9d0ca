@@ -7,7 +7,7 @@ dt = 0.1
 opts = TrajectoryOptimization.SolverOptions()
 opts.square_root = false
 opts.verbose = false
-opts.cache = true
+opts.cache = false
 # opts.c1 = 1e-4
 # opts.c2 = 2.0
 # opts.mu_al_update = 10.0
@@ -39,7 +39,6 @@ sol_foh, = TrajectoryOptimization.solve(solver_foh,U)
 #     plot(sol_foh.U')
 #     plot!(sol_zoh.U')
 # end
-
 # Test final state from foh solve
 @test norm(solver_foh.obj.xf - sol_foh.X[:,end]) < 1e-3
 ##
@@ -94,13 +93,27 @@ sol_zoh_con2, = TrajectoryOptimization.solve(solver_zoh_con2,U)
 ###
 
 ## Unconstrained infeasible start pendulum (foh)
-solver_uncon_inf = Solver(model_p,obj_uncon_p,integration=:rk3_foh,dt=dt,opts=opts)
+solver_uncon_inf = Solver(model_p,obj_uncon_p,integration=:rk3_foh,dt=0.01,opts=opts)
 
 # -initial state and control trajectories
 X_interp = line_trajectory(solver_uncon_inf.obj.x0,solver_uncon_inf.obj.xf,solver_uncon_inf.N)
 U = ones(solver_uncon_inf.model.m,solver_uncon_inf.N)
 
 results_inf, = solve(solver_uncon_inf,X_interp,U)
+# results_inf.X
+# A = results_inf.fx[:,1:solver_uncon_inf.model.n,:]
+# B = results_inf.fu[1:solver_uncon_inf.model.n,1:solver_uncon_inf.model.m,:]
+# Q = 10.0*Diagonal(I,solver_uncon_inf.model.n)
+# R = 0.01*Diagonal(I,solver_uncon_inf.model.m)
+# Qf = 10.0*Diagonal(I,solver_uncon_inf.model.n)
+# K = lqr(A, B, Q, R, Qf)
+# fdd = rk4(solver_uncon_inf.fc, solver_uncon_inf.dt)
+# u_mid = zeros(solver_uncon_inf.model.m,solver_uncon_inf.N)
+# for i = 1:solver_uncon_inf.N-1
+#     u_mid[:,i] = mean([results_inf.U[1:solver_uncon_inf.model.m,i] results_inf.U[1:solver_uncon_inf.model.m,i+1]],2)
+# end
+# X_l, U_l = simulate_lqr_tracker(f22,results_inf.X,results_inf.U[1:solver_uncon_inf.model.m,:],K)
+#
 
 # if opts.verbose
 #     plot(results_inf.X',title="Pendulum (Infeasible start with unconstrained control and states (inplace dynamics))",ylabel="x(t)")
@@ -108,13 +121,14 @@ results_inf, = solve(solver_uncon_inf,X_interp,U)
 #     println("Final state: $(results_inf.X[:,end])")
 #     println("Final cost: $(results_inf.cost[end])")
 # end
-idx = findall(x->x==2,results_inf.iter_type)
-
-# Test that infeasible control output is good warm start for dynamically constrained solve
-@test norm(results_inf.result[idx[1]-1].U[1,:]-results_inf.result[idx[1]+1].U[1,:]) < 100.0 # TODO fix
+# idx = findall(x->x==2,results_inf.iter_type)
+#
+# # Test that infeasible control output is good warm start for dynamically constrained solve
+# @test norm(results_inf.result[idx[1]-1].U[1,:]-results_inf.result[idx[1]+1].U[1,:]) < 100.0 # TODO fix
 
 # Test final (dynamically constrained) state from foh solve
 @test norm(results_inf.X[:,end] - solver_uncon_inf.obj.xf) < 1e-3
+
 
 # if opts.verbose
 #     plot(results_inf.result[idx[1]-1].U',color="green")
@@ -152,7 +166,7 @@ X_interp = line_trajectory(solver_con2.obj.x0,solver_con2.obj.xf,solver_con2.N)
 U = ones(solver_con2.model.m,solver_con2.N)
 
 results_inf2, = solve(solver_con2,X_interp,U)
-
+results_inf2.X[:,end]
 # Test final state from foh solve
 @test norm(results_inf2.X[:,end] - solver_con2.obj.xf) < 1e-3
 #
@@ -164,7 +178,7 @@ results_inf2, = solve(solver_con2,X_interp,U)
 #     # trajectory_animation(results,filename="infeasible_start_state.gif",fps=5)
 #     # trajectory_animation(results,traj="control",filename="infeasible_start_control.gif",fps=5)
 # end
-idx = findall(x->x==2,results_inf2.iter_type)
+# idx = findall(x->x==2,results_inf2.iter_type)
 
 # if opts.verbose
 #     plot(results_inf2.result[idx[1]-1].U',color="green")
@@ -172,15 +186,15 @@ idx = findall(x->x==2,results_inf2.iter_type)
 # end
 
 # Confirm that control output from infeasible start is a good warm start for constrained solve
-@test norm(results_inf2.result[idx[1]-1].U[1,:]-results_inf2.result[idx[1]].U[1,:]) < 1e-3
+# @test norm(results_inf2.result[idx[1]-1].U[1,:]-results_inf2.result[idx[1]].U[1,:]) < 1e-3
 
-tmp = ConstrainedResults(solver_con2.model.n,solver_con2.model.m,size(results_inf2.result[1].C,1),solver_con2.N)
-tmp.U[:,:] = results_inf2.result[idx[1]-1].U[1,:]
-tmp2 = ConstrainedResults(solver_con2.model.n,solver_con2.model.m,size(results_inf2.result[1].C,1),solver_con2.N)
-tmp2.U[:,:] = results_inf2.result[end].U
-
-rollout!(tmp,solver_con2)
-rollout!(tmp2,solver_con2)
+# tmp = ConstrainedResults(solver_con2.model.n,solver_con2.model.m,size(results_inf2.result[1].C,1),solver_con2.N)
+# tmp.U[:,:] = results_inf2.result[idx[1]-1].U[1,:]
+# tmp2 = ConstrainedResults(solver_con2.model.n,solver_con2.model.m,size(results_inf2.result[1].C,1),solver_con2.N)
+# tmp2.U[:,:] = results_inf2.result[end].U
+#
+# rollout!(tmp,solver_con2)
+# rollout!(tmp2,solver_con2)
 
 # if opts.verbose
 #     plot(tmp.X')
@@ -188,7 +202,7 @@ rollout!(tmp2,solver_con2)
 # end
 
 # Confirm that state trajectory from infeasible start is similar to the unconstrained solve
-@test norm(tmp.X' - tmp2.X') < 15.0
+# @test norm(tmp.X' - tmp2.X') < 15.0
 ###################
 
 #----------------#
