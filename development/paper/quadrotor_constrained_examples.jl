@@ -9,7 +9,7 @@ using Plots
 dt = 0.1
 integration = :rk3_foh
 opts = SolverOptions()
-opts.verbose = false
+opts.verbose = true
 opts.iterations_innerloop = 500
 opts.constraint_tolerance = 1e-3
 opts.cost_intermediate_tolerance = 1e-3
@@ -89,7 +89,7 @@ solver_con = Solver(model,obj_con,integration=integration,dt=dt,opts=opts)
 solver_con_mintime = TrajectoryOptimization.Solver(model,obj_con_min,integration=integration,N=solver_uncon.N,opts=opts_mintime)
 
 # - Initial control and state trajectories
-U0 = rand(solver_uncon.model.m, solver_uncon.N)
+U0 = ones(solver_uncon.model.m, solver_uncon.N)
 X0 = line_trajectory(solver_uncon)
 # X0[4:7,:] .= quat0
 
@@ -122,8 +122,7 @@ X0 = line_trajectory(solver_uncon)
 # res_z.X .= res_z.X_
 # res_z.U .= res_z.U_
 
-# Solve
-# @time results_uncon_f, stats_uncon_f = solve(solver_uncon_f,U0)
+# Solve # @time results_uncon_f, stats_uncon_f = solve(solver_uncon_f,U0)
 # @time results_uncon_z, stats_uncon_z = solve(solver_uncon_z,U0)
 #
 # plot(log.(stats_uncon_f["cost"]),title="Unconstrained Quadrotor",xlabel="iteration",ylabel="log(cost)",label="foh")
@@ -132,16 +131,15 @@ X0 = line_trajectory(solver_uncon)
 # println("Final state (foh)-> res: $(results_uncon_f.X[end][1:3]), goal: $(solver_uncon_f.obj.xf[1:3])\n Iterations: $(stats_uncon_f["iterations"])\n Outer loop iterations: $(stats_uncon_f["major iterations"])\n ")
 # println("Final state (zoh)-> res: $(results_uncon_z.X[end][1:3]), goal: $(solver_uncon_z.obj.xf[1:3])\n Iterations: $(stats_uncon_z["iterations"])\n Outer loop iterations: $(stats_uncon_z["major iterations"])\n ")
 
-# @time results_uncon, stats_uncon = solve(solver_uncon,U0)
-@time results_uncon_mintime, stats_uncon_mintime = solve(solver_uncon_mintime,U0)
+@time results_uncon, stats_uncon = solve(solver_uncon,U0)
+# @time results_uncon_mintime, stats_uncon_mintime = solve(solver_uncon_mintime,U0)
 
-# @time results_con, stats_con = solve(solver_con,U0)
+@time results_con, stats_con = solve(solver_con,U0)
 # @time results_con_mintime, stats_con_mintime = solve(solver_con_mintime,X0,U0)
 
-results_mintime
-
+plot(log.(stats_uncon["cost"]))
 println("Final state (unconstrained)-> pos: $(results_uncon.X[end][1:3]), goal: $(solver_uncon.obj.xf[1:3])\n Iterations: $(stats_uncon["iterations"])\n Outer loop iterations: $(stats_uncon["major iterations"])\n ")
-println("Final state (constrained)-> pos: $(results_con.X[end][1:3]), goal: $(solver_con.obj.xf[1:3])\n Iterations: $(stats_con["iterations"])\n Outer loop iterations: $(stats_con["major iterations"])\n Max violation: $(stats_con["c_max"][end])\n Max μ: $(maximum([to_array(results_con.μ)[:]; results_con.μN[:]]))\n Max abs(λ): $(maximum(abs.([to_array(results_con.λ)[:]; results_con.λN[:]])))\n")
+# println("Final state (constrained)-> pos: $(results_con.X[end][1:3]), goal: $(solver_con.obj.xf[1:3])\n Iterations: $(stats_con["iterations"])\n Outer loop iterations: $(stats_con["major iterations"])\n Max violation: $(stats_con["c_max"][end])\n Max μ: $(maximum([to_array(results_con.μ)[:]; results_con.μN[:]]))\n Max abs(λ): $(maximum(abs.([to_array(results_con.λ)[:]; results_con.λN[:]])))\n")
 
 # ## Results
 # # Position

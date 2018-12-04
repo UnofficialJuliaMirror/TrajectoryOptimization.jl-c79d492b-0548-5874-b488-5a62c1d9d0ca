@@ -20,7 +20,7 @@ Online Trajectory Optimization)
 """
 function backwardpass!(results::SolverVectorResults,solver::Solver)
     if solver.control_integration == :foh
-        Δv = _backwardpass_foh_speedup!(results,solver)
+        Δv = _backwardpass_foh!(results,solver)
     elseif solver.opts.square_root
         Δv = _backwardpass_sqrt!(results, solver) #TODO option to help avoid ill-conditioning [see algorithm xx]
     else
@@ -1095,6 +1095,7 @@ function forwardpass!(res::SolverIterResults, solver::Solver, Δv::Array)#, J_pr
         calculate_midpoints!(res, solver, X, U)
     end
     update_constraints!(res,solver,X,U)
+
     J_prev = cost(solver, res, X, U)
 
     J = Inf
