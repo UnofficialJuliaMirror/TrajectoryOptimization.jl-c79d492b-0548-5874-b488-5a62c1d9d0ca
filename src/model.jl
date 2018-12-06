@@ -67,19 +67,38 @@ struct Model
         num_joints = length(joints(mech))-1  # subtract off joint to world
         m = num_joints # Default to number of joints
 
-        function fc(xdot,x,u)
-            state = MechanismState{eltype(x)}(mech)
-            # set the state variables:
-            q = x[1:num_joints]
-            qd = x[1+num_joints:num_joints+num_joints]
-            set_configuration!(state, q)
-            set_velocity!(state, qd)
-            xdot[1:num_joints] = qd
-            xdot[num_joints+1:num_joints+num_joints] = Array(mass_matrix(state))\(torques.*u - Array(dynamics_bias(state)))
+        # function fc(xdot,x,u)
+        #     state = MechanismState{eltype(x)}(mech)
+        #     # set the state variables:
+        #     q = x[1:num_joints]
+        #     qd = x[1+num_joints:num_joints+num_joints]
+        #     set_configuration!(state, q)
+        #     set_velocity!(state, qd)
+        #     xdot[1:num_joints] = qd
+        #     xdot[num_joints+1:num_joints+num_joints] = Array(mass_matrix(state))\(torques.*u - Array(dynamics_bias(state)))
+        #     return nothing
+        # end
+        q_idx = 1:num_joints
+        q̇_idx = num_joints+1:2*num_joints
+        statecache = StateCache(mech)
+        dynamicsresultscache = DynamicsResultCache(mech)
+        function f(ẋ::AbstractVector{T},x::AbstractVector{T},u::AbstractVector{T}) where T
+            state = statecache[T]
+            dyn = dynamicsresultscache[T]
+
+            # q = x[q_idx]
+            # q̇ = x[q̇_idx]
+            # set_configuration!(state, q)
+            # set_velocity!(state, q̇)
+            # dynamics!(dyn, state, u)
+            # ẋ[q_idx] = q̇
+            # ẋ[q̇_idx] = dyn.v̇
+
+            dynamics!(view(ẋ,1:n), dyn, state, x, u) # TODO there should be a way to get a slight speed increase using this
             return nothing
         end
 
-        new(fc, n, convert(Int,sum(torques)))
+        new(f, n, convert(Int,sum(torques)))
     end
 end
 
