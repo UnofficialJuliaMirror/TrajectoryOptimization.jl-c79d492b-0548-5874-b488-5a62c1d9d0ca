@@ -81,19 +81,15 @@ x_min = [-10;-10]
 x_max = [10; 10]
 
 obj_con_p = ConstrainedObjective(obj_uncon_p, u_min=u_min, u_max=u_max, x_min=x_min, x_max=x_max)
-opts.verbose = false
-solver_con2 = Solver(model_p,obj_con_p,integration=:rk3_foh,dt=dt,opts=opts)
 
+solver_con2 = Solver(model_p,obj_con_p,integration=:rk3_foh,dt=dt,opts=opts)
 # -Linear interpolation for state trajectory
-X_interp = line_trajectory(solver_con2.obj.x0,solver_con2.obj.xf,solver_con2.N)
+X_interp = line_trajectory(solver_con2)
 U = ones(solver_con2.model.m,solver_con2.N)
 
 results_inf2, stats_inf2 = solve(solver_con2,X_interp,U)
 
-# plot(to_array(results_inf2.X)')
-# plot(stats_inf2["cost"][1:15])
-# stats_inf2["cost"][end]
-
+plot(to_array(results_inf2.U)')
 # Test final state from foh solve
 @test norm(results_inf2.X[end] - solver_con2.obj.xf) < 1e-3
 ######################################################
@@ -118,17 +114,17 @@ sol_foh, = TrajectoryOptimization.solve(solver_foh,U)
 #####################################
 
 ## State and control constraints Dubins car (foh) ##
-u_min = [-1; -1]
-u_max = [100; 100]
-x_min = [0; -100; -100]
-x_max = [1.0; 100; 100]
+u_min = [-1.0;-1.0]
+u_max = [1.0; 1.0]
+x_min = [-1.0; -0.001; -Inf]
+x_max = [1.0; 1.001; Inf]
 
+obj_uncon_dc.xf
 obj_con2_dc = TrajectoryOptimization.ConstrainedObjective(obj_uncon_dc, u_min=u_min, u_max=u_max, x_min=x_min, x_max=x_max) # constrained objective
-
 solver_foh_con2 = Solver(model_dc, obj_con2_dc, integration=:rk3_foh, dt=dt, opts=opts)
 solver_zoh_con2 = Solver(model_dc, obj_con2_dc, integration=:rk3, dt=dt, opts=opts)
 
-U = 5*rand(solver_foh_con2.model.m,solver_foh_con2.N)
+U = rand(solver_foh_con2.model.m,solver_foh_con2.N)
 
 sol_foh_con2, = TrajectoryOptimization.solve(solver_foh_con2,U)
 sol_zoh_con2, = TrajectoryOptimization.solve(solver_zoh_con2,U)
@@ -140,22 +136,23 @@ sol_zoh_con2, = TrajectoryOptimization.solve(solver_zoh_con2,U)
 ## Infeasible start with state and control constraints Dubins car (foh) ##
 u_min = [-1; -1]
 u_max = [100; 100]
-x_min = [0; -100; -100]
-x_max = [1.0; 100; 100]
+x_min = [-1e-3; -1e-3; -Inf]
+x_max = [100; 100; Inf]
+# u_min = [-1.0;-1.0]
+# u_max = [1.0; 1.0]
+# x_min = [-1.0; -0.001; -Inf]
+# x_max = [1.0; 1.001; Inf]
 
 obj_con2_dc = TrajectoryOptimization.ConstrainedObjective(obj_uncon_dc, u_min=u_min, u_max=u_max, x_min=x_min, x_max=x_max) # constrained objective
 
 solver_foh_con2 = Solver(model_dc, obj_con2_dc, integration=:rk3_foh, dt=dt, opts=opts)
 solver_zoh_con2 = Solver(model_dc, obj_con2_dc, integration=:rk3, dt=dt, opts=opts)
-
 # -initial control and state trajectories
-U = 5*rand(solver_foh_con2.model.m,solver_foh_con2.N)
+U = rand(solver_foh_con2.model.m,solver_foh_con2.N)
 X_interp = line_trajectory(solver_foh_con2)
 
 sol_foh_con2, = TrajectoryOptimization.solve(solver_foh_con2,X_interp,U)
 sol_zoh_con2, = TrajectoryOptimization.solve(solver_zoh_con2,X_interp,U)
 
-sol_foh_con2.X[end]
 @test norm(sol_foh_con2.X[end] - solver_foh_con2.obj.xf) < 1e-3
-sol_foh_con2.X[end]
 ###########################################################################

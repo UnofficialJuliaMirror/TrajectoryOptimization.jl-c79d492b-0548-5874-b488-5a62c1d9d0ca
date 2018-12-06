@@ -206,7 +206,8 @@ function getR(solver::Solver)::Array{Float64,2}
             R[m̄,m̄] = solver.opts.R_minimum_time
         end
         if solver.opts.infeasible
-            R[m̄+1:end,m̄+1:end] = Diagonal(ones(n)*solver.opts.R_infeasible*tr(solver.obj.R))
+            # R[m̄+1:end,m̄+1:end] = Diagonal(ones(n)*solver.opts.R_infeasible*tr(solver.obj.R))
+            R[m̄+1:end,m̄+1:end] = Diagonal(ones(n)*solver.opts.R_infeasible)
         end
         return R
     end

@@ -205,6 +205,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
     #****************************#
 
     dJ = Inf
+    dJ_zero_counter = 0
     gradient = Inf
     Δv = [Inf, Inf]
     sqrt_tolerance = false
@@ -235,7 +236,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
             Δv = backwardpass!(results, solver)
 
             ### FORWARDS PASS ###
-            J = forwardpass!(results, solver, Δv)#, J_prev)
+            J = forwardpass!(results, solver, Δv, J_prev)
             push!(J_hist,J)
 
             # increment iLQR inner loop counter
@@ -246,6 +247,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
             U .= deepcopy(U_)
 
             dJ = copy(abs(J-J_prev)) # change in cost
+            dJ == 0.0 ? dJ_zero_counter += 1 : nothing
             J_prev = copy(J)
 
             if solver.opts.constrained
@@ -255,12 +257,12 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
             end
 
             ## Check gradients for convergence ##
-            d_grad = maximum(map((x)->maximum(abs.(x)),results.d))
-            s_grad = maximum(abs.(results.s[1]))
+            # d_grad = maximum(map((x)->maximum(abs.(x)),results.d))
+            # s_grad = maximum(abs.(results.s[1]))
             todorov_grad = calculate_todorov_gradient(results)
 
-            @logmsg InnerLoop :dgrad value=d_grad
-            @logmsg InnerLoop :sgrad value=s_grad
+            # @logmsg InnerLoop :dgrad value=d_grad
+            # @logmsg InnerLoop :sgrad value=s_grad
             @logmsg InnerLoop :grad value=todorov_grad
             gradient = todorov_grad
 
@@ -274,17 +276,10 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
                 display(plot(to_array(results.X)'))
             end
 
-            # if iter > 1
-            #     c_diff = abs(c_max-c_max_hist[end-1])
-            # else
-            #     c_diff = 0.
-            # end
-            # @logmsg InnerLoop :c_diff value=c_diff
-
             ii % 10 == 1 ? print_header(logger,InnerLoop) : nothing
             print_row(logger,InnerLoop)
 
-            evaluate_convergence(solver,:inner,dJ,c_max,gradient,iter,j) ? break : nothing
+            evaluate_convergence(solver,:inner,dJ,c_max,gradient,iter,j,dJ_zero_counter) ? break : nothing
 
             if J > solver.opts.max_cost
                 error("Cost exceded maximum allowable cost")
@@ -297,7 +292,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
         #****************************#
 
         # update multiplier and penalty terms
-        outer_loop_update(results,solver,false)
+        outer_loop_update(results,solver)
         J_prev = cost(solver, results, results.X, results.U)
 
         # Logger output
@@ -311,7 +306,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
         #    TERMINATION CRITERIA    #
         #****************************#
         # Check if maximum constraint violation satisfies termination criteria AND cost or gradient tolerance convergence
-        evaluate_convergence(solver,:outer,dJ,c_max,gradient,iter,0) ? break : nothing
+        evaluate_convergence(solver,:outer,dJ,c_max,gradient,iter,0,dJ_zero_counter) ? break : nothing
 
     end
     end
@@ -381,12 +376,17 @@ $(SIGNATURES)
     Check convergence
     -return true is convergence criteria is met, else return false
 """
-function evaluate_convergence(solver::Solver,loop::Symbol,dJ::Float64,c_max::Float64,gradient::Float64,iter_total::Int64,iter_outerloop::Int64)
+function evaluate_convergence(solver::Solver,loop::Symbol,dJ::Float64,c_max::Float64,gradient::Float64,iter_total::Int64,iter_outerloop::Int64,dJ_zero_counter::Int64)
     # Check total iterations
     if iter_total >= solver.opts.iterations
         return true
     end
+
     if loop == :inner
+        # Check for consecutive dJ == 0.0 (ie, no progress being made)
+        if dJ_zero_counter > solver.opts.dJ_zero_counter && dJ == 0.0
+            return true
+        end
         # Check for gradient convergence
         if ((~solver.opts.constrained && gradient < solver.opts.gradient_tolerance) || (solver.opts.constrained && gradient < solver.opts.gradient_intermediate_tolerance && iter_outerloop != solver.opts.iterations_outerloop))
             # @logmsg OuterLoop "--iLQR (inner loop) gradient eps criteria met at iteration: $ii"
@@ -433,7 +433,7 @@ function get_feasible_trajectory(results::SolverIterResults,solver::Solver)::Sol
     Δv = backwardpass!(results_feasible, solver)
 
     # forward pass
-    forwardpass!(results_feasible,solver,Δv)#,cost(solver, results_feasible, results_feasible.X, results_feasible.U))
+    forwardpass!(results_feasible,solver,Δv,cost(solver, results_feasible, results_feasible.X, results_feasible.U))
 
     # update trajectories
     results_feasible.X .= deepcopy(results_feasible.X_)
@@ -556,10 +556,10 @@ end
 $(SIGNATURES)
     Updates penalty (μ) and Lagrange multiplier (λ) parameters for Augmented Lagrangian method
 """
-function outer_loop_update(results::ConstrainedIterResults,solver::Solver,sqrt_tolerance::Bool=false)::Nothing
+function outer_loop_update(results::ConstrainedIterResults,solver::Solver)::Nothing
 
     ## Lagrange multiplier updates
-    λ_update!(results,solver,false)
+    λ_update!(results,solver)
 
     ## Penalty updates
     μ_update!(results,solver)
@@ -571,7 +571,7 @@ function outer_loop_update(results::ConstrainedIterResults,solver::Solver,sqrt_t
     return nothing
 end
 
-function outer_loop_update(results::UnconstrainedIterResults,solver::Solver,sqrt_tolerance::Bool)::Nothing
+function outer_loop_update(results::UnconstrainedIterResults,solver::Solver)::Nothing
     return nothing
 end
 

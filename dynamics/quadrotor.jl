@@ -53,26 +53,11 @@ function quadrotor_dynamics!(ẋ,X,u)
       tmp = hamilton_product(q,hamilton_product([0;0;F1+F2+F3+F4;0],quaternion_conjugate(q)))#TODO does the quaternion need to be unit when we do this rotation? or is unit quaternion only required when we convert quaterion to rotation matrix
       a = (1/m)*([0;0;-m*g] + tmp[1:3]);
 
-      # if !all(isapprox.(quat2rot(q)*[0;0;F1+F2+F3+F4],tmp[1:3]))
-      #       println("$(tmp[1:3])")
-      #       println("$(quat2rot(q)*[0;0;F1+F2+F3+F4])")
-      #       error("hamilton product does not match rotation matrix")
-      # end
-
-      # a = (1/m)*([0;0;-m*g] + quat2rot(q)*[0;0;F1+F2+F3+F4]);
-
       ẋ[1:3] = v # velocity
       ẋ[4:7] = 0.5*hamilton_product(q,[omega;0]) # TODO should q be unit?
       ẋ[8:10] = a # acceleration
       ẋ[11:13] = invIM*([L*(F2-F4);L*(F3-F1);(M1-M2+M3-M4)] - cross(omega,IM*omega)) # ̇ω; Euler's equation: I(̇ω) + ω x Iω = τ
 end
-
-function quadrotor_dynamics(X,u)
-      ẋ = zero(13,1)
-      quadrotor_dynamics!(ẋ,X,u)
-      ẋ
-end
-
 
 ## Utilities
 """
@@ -103,12 +88,11 @@ end
 """
 function quaternion_conjugate(q)
       # calculate the congugate of a quaternion: q^+; q = [v;s] -> q^+ = [-v;s]
-      q_ = zero(q)
-      q_[1] = -1*q[1]
-      q_[2] = -1*q[2]
-      q_[3] = -1*q[3]
-      q_[4] = 1*q[4]
-
+      q_ = copy(q)
+      q_[1] *= -1
+      q_[2] *= -1
+      q_[3] *= -1
+      # q_[4] *= 1
       q_
 end
 
@@ -121,13 +105,6 @@ function quat2rot(q)
        (2*x*z - 2*y*w) (2*y*z + 2*x*w) (z^2 - y^2 - x^2 + w^2)]
 end
 
-# w = [1;2;3;4]
-# w /= norm(w)
-#
-# omega = [1;2;3]
-#
-# hamilton_product(w,[omega;0])
-# hamilton_product([omega;0],w)
 
 # Model
 n = 13

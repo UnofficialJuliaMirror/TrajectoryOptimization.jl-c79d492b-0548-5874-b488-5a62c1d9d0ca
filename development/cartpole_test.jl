@@ -2,7 +2,6 @@
 opts = TrajectoryOptimization.SolverOptions()
 opts.square_root = false
 opts.verbose = true
-opts.cache = true
 # opts.c1 = 1e-4
 # opts.c2 = 3.0
 #opts.infeasible_regularization = 1.0
@@ -10,7 +9,6 @@ opts.constraint_tolerance = 1e-3
 opts.cost_intermediate_tolerance = 1e-3
 opts.cost_tolerance = 1e-3
 opts.τ = 0.1
-opts.outer_loop_update = :uniform
 # opts.iterations_outerloop = 100
 # opts.iterations = 1000
 # opts.iterations_linesearch = 50
@@ -19,7 +17,7 @@ opts.outer_loop_update = :uniform
 ### Set up model, objective, solver ###
 # Model
 dt = 0.01
-model,  = TrajectoryOptimization.Dynamics.cartpole_analytical
+model,  = TrajectoryOptimization.Dynamics.cartpole
 
 # Objective
 Q = 0.01*eye(model.n)
