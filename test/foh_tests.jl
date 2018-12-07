@@ -89,7 +89,7 @@ U = ones(solver_con2.model.m,solver_con2.N)
 
 results_inf2, stats_inf2 = solve(solver_con2,X_interp,U)
 
-plot(to_array(results_inf2.U)')
+# plot(to_array(results_inf2.U)')
 # Test final state from foh solve
 @test norm(results_inf2.X[end] - solver_con2.obj.xf) < 1e-3
 ######################################################

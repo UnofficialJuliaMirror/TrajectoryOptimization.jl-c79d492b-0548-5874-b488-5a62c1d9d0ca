@@ -1,7 +1,6 @@
 LQR simulator
 Solution polishing
-2nd order multiplier update
-Active set for tail convergence
+Active set
 Square root method
 Handle different U sizes
 Output condition numbers
@@ -9,8 +8,9 @@ Scaling problem
 Allow settings file
 Slack for constraints
 Log-barrier constraint on controls
-Analytical Jacobians
+Analytical Jacobians as user input
 Trajectory type
 Model/solver tests
-DIRCOL/iLQR intergration
+DIRCOL/iLQR integration
 General cost functions | full quadratic expansion of cost
+Analytical derivatives for integrators instead of ForwardDiff
