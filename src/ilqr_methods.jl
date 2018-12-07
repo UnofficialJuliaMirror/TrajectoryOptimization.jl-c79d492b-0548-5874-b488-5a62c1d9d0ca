@@ -252,10 +252,10 @@ function _cost(solver::Solver,res::SolverVectorResults,X=res.X,U=res.U)
             solver.opts.minimum_time ? J += solver.opts.R_minimum_time*dt : nothing
             solver.opts.infeasible ? J += 0.5*solver.opts.R_infeasible*U[k][m̄.+(1:n)]'*U[k][m̄.+(1:n)] : nothing
         else
-            J += dt*stage_cost(X[k],U[k],Q,getR(solver),xf,obj.c)
-            # J += dt*ℓ(X[k],U[k][1:m],Q,R,xf)
-            # solver.opts.minimum_time ? J += solver.opts.R_minimum_time*dt : nothing
-            # solver.opts.infeasible ? J += 0.5*solver.opts.R_infeasible*U[k][m̄.+(1:n)]'*U[k][m̄.+(1:n)] : nothing
+            # J += dt*stage_cost(X[k],U[k],Q,getR(solver),xf,obj.c)
+            J += dt*ℓ(X[k],U[k][1:m],Q,R,xf)
+            solver.opts.minimum_time ? J += solver.opts.R_minimum_time*dt : nothing
+            solver.opts.infeasible ? J += 0.5*solver.opts.R_infeasible*U[k][m̄.+(1:n)]'*U[k][m̄.+(1:n)] : nothing
         end
     end
 
@@ -268,6 +268,7 @@ end
 function cost_constraints(solver::Solver, res::ConstrainedIterResults)
     N = solver.N
     J = 0.0
+
     for k = 1:N-1
         J += 0.5*res.C[k]'*res.Iμ[k]*res.C[k] + res.λ[k]'*res.C[k]
     end

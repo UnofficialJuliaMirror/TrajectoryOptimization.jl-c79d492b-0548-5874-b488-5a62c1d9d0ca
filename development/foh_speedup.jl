@@ -27,25 +27,25 @@ obj = obj_con_dubins
 u_max = u_max_dubins
 u_min = u_min_dubins
 
-obj = TrajectoryOptimization.update_objective(obj, tf=:min, c=0.0, Q = 1e-3*Diagonal(I,model.n), R = 1e-3*Diagonal(I,model.m), Qf = Diagonal(I,model.n))
-
+# obj = TrajectoryOptimization.update_objective(obj, tf=:min, c=0.0, Q = 1e-3*Diagonal(I,model.n), R = 1e-3*Diagonal(I,model.m), Qf = Diagonal(I,model.n))
+# obj = obj_uncon_dubins
 # Solver
 intergrator_foh = :rk3_foh
 
 dt = 0.005
 solver1 = Solver(model,obj,integration=intergrator_foh,N=51)
-solver1.opts.minimum_time = true
-solver1.opts.infeasible = true
+solver1.opts.minimum_time = false
+solver1.opts.infeasible = false
 solver1.opts.constrained = true
 X0 = line_trajectory(solver1)
 U0 = ones(solver1.model.m,solver1.N)
-U0 = [U0; ones(1,solver1.N)]
-u0 = infeasible_controls(solver1,X0)
-U0 = [U0;u0]
+# U0 = [U0; ones(1,solver1.N)]
+# u0 = infeasible_controls(solver1,X0)
+# U0 = [U0;u0]
 
 solver2 = Solver(model,obj,integration=intergrator_foh,N=51)
-solver2.opts.minimum_time = true
-solver2.opts.infeasible = true
+solver2.opts.minimum_time = false
+solver2.opts.infeasible = false
 solver2.opts.constrained = true
 
 results1 = init_results(solver1,X0,U0)
@@ -56,16 +56,16 @@ calculate_jacobians!(results1, solver1)
 calculate_jacobians!(results2, solver2)
 
 println("TEST")
-@time v1 = _backwardpass_foh!(results1,solver1)
-@time v2 = _backwardpass_foh_speedup!(results2,solver2)
+@time v1 = _backwardpass_foh_old!(results1,solver1)
+@time v2 = _backwardpass_foh!(results2,solver2)
 
 @test isapprox(v1[1:2], v2[1:2])
 @test isapprox(to_array(results1.K),to_array(results2.K))
 @test isapprox(to_array(results1.b),to_array(results2.b))
 @test isapprox(to_array(results1.d),to_array(results2.d))
 
-@btime _backwardpass_foh!(results1,solver1)
-@btime _backwardpass_foh_speedup!(results2,solver2)
+# @btime _backwardpass_foh_old!(results1,solver1)
+# @btime _backwardpass_foh!(results2,solver2)
 println("\n")
 
 # Benchmark
@@ -136,28 +136,32 @@ println("\n")
 # 10. -smarter indexing
 # 39.727 ms (43878 allocations: 4.40 MiB)
 # 19.778 ms (24639 allocations: 2.97 MiB)
+# 11. .+= for Q updates
+# 22.271 ms (42678 allocations: 4.37 MiB)
+# 11.669 ms (22553 allocations: 2.92 MiB)
 
-model, obj = Dynamics.cartpole_analytical
-n,m = model.n, model.m
-N = 51
-dt = 0.1
 
-obj.x0 = [0;0;0;0]
-obj.xf = [0.5;pi;0;0]
-obj.tf = 2.0
-U0 = ones(m,N)
-solver_foh = Solver(model,obj,N=N,opts=opts,integration=:rk3_foh)
-solver_zoh = Solver(model,obj,N=N,opts=opts,integration=:rk3)
-
-k = 10
-time_per_iter_foh = zeros(k)
-time_per_iter_zoh = zeros(k)
-
-for i = 1:k
-  res_foh, stat_foh = solve(solver_foh,U0)
-  res_zoh, stat_zoh = solve(solver_zoh,U0)
-  time_per_iter_foh[i] = stat_foh["runtime"]/stat_foh["iterations"]
-  time_per_iter_zoh[i] = stat_zoh["runtime"]/stat_zoh["iterations"]
-end
-println("Time per iter (foh): $(mean(time_per_iter_foh))")
-println("Time per iter (zoh): $(mean(time_per_iter_zoh))")
+# model, obj = Dynamics.cartpole_analytical
+# n,m = model.n, model.m
+# N = 51
+# dt = 0.1
+#
+# obj.x0 = [0;0;0;0]
+# obj.xf = [0.5;pi;0;0]
+# obj.tf = 2.0
+# U0 = ones(m,N)
+# solver_foh = Solver(model,obj,N=N,opts=opts,integration=:rk3_foh)
+# solver_zoh = Solver(model,obj,N=N,opts=opts,integration=:rk3)
+#
+# k = 10
+# time_per_iter_foh = zeros(k)
+# time_per_iter_zoh = zeros(k)
+#
+# for i = 1:k
+#   res_foh, stat_foh = solve(solver_foh,U0)
+#   res_zoh, stat_zoh = solve(solver_zoh,U0)
+#   time_per_iter_foh[i] = stat_foh["runtime"]/stat_foh["iterations"]
+#   time_per_iter_zoh[i] = stat_zoh["runtime"]/stat_zoh["iterations"]
+# end
+# println("Time per iter (foh): $(mean(time_per_iter_foh))")
+# println("Time per iter (zoh): $(mean(time_per_iter_zoh))")
