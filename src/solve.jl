@@ -236,9 +236,10 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
             iter += 1
 
             if solver.opts.live_plotting
-                @show solver.opts.R_infeasible
                 X_traj = to_array(results.X)
-                display(plot(X_traj[1,:],X_traj[2,:]))
+                p = plot()
+                plot_obstacles(circles)
+                display(plot!(X_traj[1,:],X_traj[2,:]))
             end
 
             ### UPDATE RESULTS ###
