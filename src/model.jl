@@ -39,7 +39,7 @@ struct Model
     function Model(f::Function, n::Int64, m::Int64)
         # Make dynamics inplace
         if is_inplace_dynamics(f,n,m)
-            f! =f
+            f! = f
         else
             f! = wrap_inplace(f)
         end
