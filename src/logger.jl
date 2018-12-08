@@ -4,6 +4,17 @@ const OuterLoop = LogLevel(-100)
 const InnerLoop = LogLevel(-200)
 const InnerIters = LogLevel(-500)
 
+function default_logger(solver::Solver)
+    solver.opts.verbose == false ? min_level = Logging.Warn : min_level = InnerLoop
+    logger = SolverLogger(min_level)
+    inner_cols = [:iter, :cost, :expected, :actual, :z, :α, :c_max, :info]
+    inner_widths = [5,     14,      12,        12,  10, 10,   10,      50]
+    outer_cols = [:outeriter, :iter, :iterations, :info]
+    outer_widths = [10,          5,        12,        40]
+    add_level!(logger, InnerLoop, inner_cols, inner_widths, print_color=:green,indent=4)
+    add_level!(logger, OuterLoop, outer_cols, outer_widths, print_color=:yellow,indent=0)
+    return logger
+end
 
 """
 $(SIGNATURES)

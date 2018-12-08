@@ -157,15 +157,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
     U_ = results.U_ # updated control trajectory
 
     # Set up logger
-    solver.opts.verbose == false ? min_level = Logging.Warn : min_level = InnerLoop
-
-    logger = SolverLogger(min_level)
-    inner_cols = [:iter, :cost, :expected, :actual, :z, :α, :c_max, :info]
-    inner_widths = [5,     14,      12,        12,  10, 10,   10,      50]
-    outer_cols = [:outeriter, :iter, :iterations, :info]
-    outer_widths = [10,          5,        12,        40]
-    add_level!(logger, InnerLoop, inner_cols, inner_widths, print_color=:green,indent=4)
-    add_level!(logger, OuterLoop, outer_cols, outer_widths, print_color=:yellow,indent=0)
+    logger = default_logger(solver)
 
     #****************************#
     #           SOLVER           #
@@ -220,6 +212,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
             results.CN_prev .= deepcopy(results.CN)
         end
         c_max = 0.  # Init max constraint violation to increase scope
+        dJ_zero_counter = 0
 
         J_prev = cost(solver, results, X, U)
         j == 1 ? push!(J_hist, J_prev) : nothing  # store the first cost
@@ -253,7 +246,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
             U .= deepcopy(U_)
 
             dJ = copy(abs(J-J_prev)) # change in cost
-            dJ == 0.0 ? dJ_zero_counter += 1 : nothing
+            dJ == 0.0 ? dJ_zero_counter += 1 : dJ_zero_counter = 0
             J_prev = copy(J)
 
             if solver.opts.constrained
@@ -277,6 +270,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
             @logmsg InnerLoop :cost value=J
             @logmsg InnerLoop :dJ value=dJ loc=3
             @logmsg InnerLoop :j value=j
+            @logmsg InnerLoop :counter value=dJ_zero_counter
 
 
             ii % 10 == 1 ? print_header(logger,InnerLoop) : nothing
