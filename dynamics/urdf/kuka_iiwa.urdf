@@ -54,7 +54,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/visual/link_0.obj"/>
+        <mesh filename="C:\Users\taylor howell\.julia\dev\TrajectoryOptimization\dynamics\urdf\meshes\visual\link_0.obj"/>
       </geometry>
       <material name="Grey"/>
     </visual>
@@ -92,7 +92,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/visual/link_1.obj"/>
+        <mesh filename="C:\Users\taylor howell\.julia\dev\TrajectoryOptimization\dynamics\urdf\meshes\visual\link_1.obj"/>
       </geometry>
       <material name="Grey"/>
     </visual>
@@ -124,7 +124,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/visual/link_2.obj"/>
+        <mesh filename="C:\Users\taylor howell\.julia\dev\TrajectoryOptimization\dynamics\urdf\meshes\visual\link_2.obj"/>
       </geometry>
       <material name="Orange"/>
     </visual>
@@ -156,7 +156,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/visual/link_3.obj"/>
+        <mesh filename="C:\Users\taylor howell\.julia\dev\TrajectoryOptimization\dynamics\urdf\meshes\visual\link_3.obj"/>
       </geometry>
       <material name="Grey"/>
     </visual>
@@ -188,7 +188,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/visual/link_4.obj"/>
+        <mesh filename="C:\Users\taylor howell\.julia\dev\TrajectoryOptimization\dynamics\urdf\meshes\visual\link_4.obj"/>
       </geometry>
       <material name="Orange"/>
     </visual>
@@ -220,7 +220,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/visual/link_5.obj"/>
+        <mesh filename="C:\Users\taylor howell\.julia\dev\TrajectoryOptimization\dynamics\urdf\meshes\visual\link_5.obj"/>
       </geometry>
       <material name="Grey"/>
     </visual>
@@ -252,7 +252,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/visual/link_6.obj"/>
+        <mesh filename="C:\Users\taylor howell\.julia\dev\TrajectoryOptimization\dynamics\urdf\meshes\visual\link_6.obj"/>
       </geometry>
       <material name="Orange"/>
     </visual>
@@ -284,7 +284,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/visual/link_7.obj"/>
+        <mesh filename="C:\Users\taylor howell\.julia\dev\TrajectoryOptimization\dynamics\urdf\meshes\visual\link_7.obj"/>
       </geometry>
       <material name="Grey"/>
     </visual>

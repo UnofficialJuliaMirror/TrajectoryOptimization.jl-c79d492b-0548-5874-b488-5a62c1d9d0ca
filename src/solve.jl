@@ -247,7 +247,7 @@ function _solve(solver::Solver{Obj}, U0::Array{Float64,2}, X0::Array{Float64,2}=
             U .= deepcopy(U_)
 
             dJ = copy(abs(J-J_prev)) # change in cost
-            dJ == 0.0 ? dJ_zero_counter += 1 : nothing
+            dJ == 0.0 ? dJ_zero_counter += 1 : dJ_zero_counter = 0
             J_prev = copy(J)
 
             if solver.opts.constrained
